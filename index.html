@@ -1,9 +1,9 @@
-
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>你媽爆炸計時器</title>
+    <title>龍王計時器</title>
     <style>
         body {
             background-color: #333;
@@ -57,15 +57,6 @@
     <h1>龍王計時器</h1>
     <div class="container">
         <div class="button-wrapper">
-            <button id="timer1">Weapon cancel<br>45秒</button>
-        </div>
-        <div class="button-wrapper">
-            <button id="timer2">Weapon cancel<br>45秒</button>
-        </div>
-        <div class="button-wrapper">
-            <button id="timer3">Weapon cancel<br>45秒</button>
-        </div>
-        <div class="button-wrapper">
             <button id="timer4">Dark wyverns<br>44秒</button>
         </div>
         <div class="button-wrapper">
@@ -90,22 +81,20 @@
             <button id="timer11">DP中頭30%<br>180秒</button>
         </div>
         <div class="button-wrapper">
-            <button id="timer12">Buyer dead<br>570秒</button>
+            <button id="timer12">RIP<br>570秒</button>
         </div>
     </div>
-    <script>
-///////////////鳴聲器指令////////////////
-        function pause(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-        function playBeep(frequency) {
+<script>
+    /////////////// 鳴聲器指令 ///////////////
+    function playBeep(frequency, duration = 200, volume = 0.1) {
+        try {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
 
             oscillator.type = "square";
             oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); // 固定音量為 0~1
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
 
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
@@ -114,58 +103,55 @@
             setTimeout(() => {
                 oscillator.stop();
                 audioContext.close();
-            }, 200);
+            }, duration);
+        } catch (e) {
+            console.warn("您的瀏覽器不支援 AudioContext。");
         }
-        async function playBeepHS() {
-            playBeep(523);
-            await pause(50);  // 暫停 # 秒
-            playBeep(659);
-            await pause(100);
-            playBeep(783);
-            await pause(150);  // 暫停 # 秒
-            playBeep(1046);
+    }
+
+    /////////////// 時間格式化函式 ///////////////
+    function formatTime(seconds) {
+        if (seconds > 60) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes} : ${remainingSeconds.toString().padStart(2, '0')}`;
         }
-///////////////主運行函式////////////////
-        function startTimer(button, duration, isLooping = false) {
-            let timeLeft = duration;
-            const originalText = button.innerHTML;// 改为 innerHTML 以处理 <br> 标签
-            button.disabled = true;
-	    button.style.backgroundColor = '#888'; // 倒数功能启动时改为 #888
+        return `${seconds.toFixed(1)}`;
+    }
 
-            const timerInterval = setInterval(() => {
-                timeLeft -= 0.1;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    if (isLooping == false) {playBeep(300);}
-                    button.innerHTML = originalText;
-                    button.disabled = false;
-	            button.style.backgroundColor = '#444'; // 确保初始颜色为深灰色
-                    if (isLooping) {
-                        playBeepHS();
-                        startTimer(button, duration, true); // 重新啟動計時器
-                    }
-                } else {
+    /////////////// 主運行函式 ///////////////
+    function startTimer(button, duration, isLooping = false) {
+        let timeLeft = duration;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.style.backgroundColor = '#888';
 
-                    if (timeLeft <= 5 && timeLeft > 4.9 && isLooping == false) {
-                        playBeep(350); // 剩下5秒時發出噪音
-			button.style.backgroundColor = 'red'; // 剩下5秒時變色
-                    }
-                // 如果剩余时间小于60秒，仅显示秒数
-            	    if (timeLeft < 60) {
-                	button.innerHTML = `${originalText.split('<br>')[0]}<br>${timeLeft.toFixed(1)}秒`;
-            	} else {
-                	const minutes = Math.floor(timeLeft / 60);
-                	const seconds = (timeLeft % 60).toFixed(1);
-                	button.innerHTML = `${originalText.split('<br>')[0]}<br>${minutes}:${seconds.padStart(4, '0')}`; // 分钟:秒
-            }	
+        const timerInterval = setInterval(() => {
+            timeLeft -= 0.1;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                if (!isLooping) playBeep(300);
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.style.backgroundColor = '#444';
+                if (isLooping) {
+                    playBeep(500);
+                    startTimer(button, duration, true);
                 }
-            }, 100);
-        }
+            } else {
+                if (timeLeft <= 3 && timeLeft > 2.9 && !isLooping) {
+                    playBeep(200);
+                    button.style.backgroundColor = 'red';
+                }
+                // 更新顯示的時間
+                button.innerHTML = `${originalText.split('<br>')[0]}<br>${formatTime(timeLeft)}`;
+            }
+        }, 100);
+    }
 
+    /////////////// 初始化計時器 ///////////////
+    document.addEventListener('DOMContentLoaded', () => {
         const timers = [
-            { id: 'timer1', duration: 45 },
-            { id: 'timer2', duration: 45 },
-            { id: 'timer3', duration: 45 },
             { id: 'timer4', duration: 44 },
             { id: 'timer5', duration: 44 },
             { id: 'timer6', duration: 44 },
@@ -177,12 +163,14 @@
             { id: 'timer12', duration: 570 },
         ];
 
-        timers.forEach(timer => {
-            const button = document.getElementById(timer.id);
-            button.addEventListener('click', function() {
-                startTimer(this, timer.duration, timer.isLooping);
-            });
+        timers.forEach(({ id, duration }) => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.addEventListener('click', () => startTimer(button, duration));
+            }
         });
-    </script>
+    });
+</script>
+
 </body>
 </html>
